@@ -37,6 +37,14 @@ export async function POST(req: Request) {
       );
     }
 
+    // Check if user is active
+    if (user.status !== 'active') {
+      return NextResponse.json(
+        { error: 'Account is inactive' },
+        { status: 403 }
+      );
+    }
+
     // Check if user has appropriate role for login type
     if (loginAs === 'admin' && user.role.name !== 'Administrator') {
       return NextResponse.json(
@@ -72,6 +80,7 @@ export async function POST(req: Request) {
       }
     });
   } catch (error) {
+    console.error('Login error:', error);
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }

@@ -8,9 +8,10 @@ import {
   LayoutDashboard, 
   Users, 
   Shield,
-  Settings,
   LogOut
 } from "lucide-react";
+import { logout } from "@/lib/api";
+import toast from "react-hot-toast";
 
 
 const routes = [
@@ -29,15 +30,23 @@ const routes = [
     icon: Shield,
     href: "/roles",
   },
-  {
-    label: "Settings",
-    icon: Settings,
-    href: "/settings",
-  },
+  
 ];
 
 export default function Sidebar() {
   const router = useRouter();
+
+  
+  const handleLogout = async () => {
+    try {
+      await logout();
+      toast.success("Logged out successfully");
+      router.push("/login");
+      router.refresh();
+    } catch (error) {
+      toast.error("Failed to logout");
+    }
+  };
 
 
   return (
@@ -63,9 +72,9 @@ export default function Sidebar() {
         </div>
       </ScrollArea>
       <div className="p-4 mt-auto border-t">
-        <Button variant="ghost" className="w-full justify-start text-red-500">
+        <Button  onClick={handleLogout} variant="ghost" className="w-full justify-start text-red-500">
           <LogOut className="mr-2 h-5 w-5" 
-          onClick={() => router.push("/login") } />
+          />
           Logout
         </Button>
       </div>

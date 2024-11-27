@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -30,7 +30,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import toast from "react-hot-toast";
-import { createUser } from "@/lib/api";
+import { createUser, fetchRoles } from "@/lib/api";
 
 const formSchema = z.object({
   name: z.string().min(2, "Name must be at least 2 characters"),
@@ -47,6 +47,8 @@ interface UserDialogProps {
 
 export function UserDialog({ open, onOpenChange, onSuccess }: UserDialogProps) {
   const [loading, setLoading] = useState(false);
+  const [roles, setRoles] = useState<Array<{ id: string; name: string }>>([]);
+
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -57,6 +59,18 @@ export function UserDialog({ open, onOpenChange, onSuccess }: UserDialogProps) {
     },
   });
 
+  useEffect(() => {
+    async function loadRoles() {
+      try {
+        const rolesData = await fetchRoles();
+        setRoles(rolesData);
+      } catch (error) {
+        toast.error("Failed to load roles");
+      }
+    }
+    loadRoles();
+  }, []);
+
   async function onSubmit(values: z.infer<typeof formSchema>) {
     try {
       setLoading(true);
@@ -64,7 +78,9 @@ export function UserDialog({ open, onOpenChange, onSuccess }: UserDialogProps) {
       toast.success("User created successfully");
       form.reset();
       onSuccess?.();
+      onOpenChange(false);
     } catch (error) {
+      console.error('Error creating user:', error);
       toast.error("Failed to create user");
     } finally {
       setLoading(false);
@@ -134,9 +150,11 @@ export function UserDialog({ open, onOpenChange, onSuccess }: UserDialogProps) {
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      <SelectItem value="admin">Administrator</SelectItem>
-                      <SelectItem value="manager">Manager</SelectItem>
-                      <SelectItem value="user">User</SelectItem>
+                      {roles.map((role) => (
+                        <SelectItem key={role.id} value={role.id}>
+                          {role.name}
+                        </SelectItem>
+                      ))}
                     </SelectContent>
                   </Select>
                   <FormMessage />

@@ -3,10 +3,12 @@ const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000/a
 
 export async function fetchUsers() {
   const response = await fetch(`${API_BASE_URL}/users`, {
-    credentials: 'include',
+   
+   
     headers: {
       'Content-Type': 'application/json',
     },
+    
   });
   if (!response.ok) throw new Error('Failed to fetch users');
   return response.json();

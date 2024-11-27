@@ -29,6 +29,7 @@ export async function GET(req: Request) {
 
     return NextResponse.json(users);
   } catch (error) {
+    console.error('Error fetching users:', error);
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }
@@ -48,14 +49,29 @@ export async function POST(req: Request) {
 
     const { name, email, password, roleId } = await req.json();
 
+    // Check if user already exists
+    const existingUser = await db.user.findUnique({
+      where: { email }
+    });
+
+    if (existingUser) {
+      return NextResponse.json(
+        { error: 'User with this email already exists' },
+        { status: 400 }
+      );
+    }
+
+    // Hash password
     const hashedPassword = await bcrypt.hash(password, 10);
 
+    // Create user
     const user = await db.user.create({
       data: {
         name,
         email,
         password: hashedPassword,
-        roleId
+        roleId,
+        status: 'active'
       },
       select: {
         id: true,
@@ -70,6 +86,7 @@ export async function POST(req: Request) {
       }
     });
 
+    // Log activity
     await db.activity.create({
       data: {
         userId: authUser.id as string,
@@ -80,6 +97,7 @@ export async function POST(req: Request) {
 
     return NextResponse.json(user);
   } catch (error) {
+    console.error('Error creating user:', error);
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }
