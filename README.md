@@ -81,6 +81,30 @@ Regular User:
 
 ## Features in Detail
 
+
+## Screenshots
+-  Signup  Page Admin/User
+<img src="screenshots/Screenshot (1280).png" alt="Add Contact Form" width="700"/>
+<img src="screenshots/Screenshot (1281).png" alt="Add Contact Form" width="700"/>
+
+-  DashBoard Page
+<img src="screenshots/Screenshot (1283).png" alt="Contact List Page" width="700"/>
+<img src="screenshots/Screenshot (1284).png" alt="Contact List Page" width="700"/>
+
+-  Users Page
+<img src="screenshots/Screenshot (1285).png" alt="Add Contact Form" width="700" />
+
+-  Edit User Page
+<img src="screenshots/Screenshot (1286).png" alt="Edit Contact Form" width="700" />
+
+-  Roles Page
+<img src="screenshots/Screenshot (1287).png" alt="Edit Contact Form" width="700" />
+
+-  Light Mode Display
+<img src="screenshots/Screenshot (1288).png" alt="Edit Contact Form" width="700" />
+
+
+
 ### User Management
 - Create new users with roles
 - Edit user details and status
