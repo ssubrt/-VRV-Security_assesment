@@ -1,7 +1,6 @@
-// components/roles/role-dialog.tsx
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -24,34 +23,22 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import {
-  Command,
-  CommandEmpty,
-  CommandGroup,
-  CommandInput,
-  CommandItem,
-} from "@/components/ui/command";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
-import { Check, ChevronsUpDown } from "lucide-react";
-import { cn } from "@/lib/utils";
-import { createRole, fetchPermissions } from "@/lib/api";
+import { Checkbox } from "@/components/ui/checkbox";
 import toast from "react-hot-toast";
+import { createRole } from "@/lib/api";
+
+const PERMISSIONS = [
+  { id: "users:read", label: "Read Users" },
+  { id: "users:write", label: "Write Users" },
+  { id: "roles:read", label: "Read Roles" },
+  { id: "roles:write", label: "Write Roles" },
+] as const;
 
 const formSchema = z.object({
   name: z.string().min(2, "Name must be at least 2 characters"),
   description: z.string().optional(),
   permissions: z.array(z.string()).min(1, "Select at least one permission"),
 });
-
-interface Permission {
-  id: string;
-  name: string;
-  description: string;
-}
 
 interface RoleDialogProps {
   open: boolean;
@@ -61,8 +48,6 @@ interface RoleDialogProps {
 
 export function RoleDialog({ open, onOpenChange, onSuccess }: RoleDialogProps) {
   const [loading, setLoading] = useState(false);
-  const [permissions, setPermissions] = useState<Permission[]>([]);
-  const [permissionsOpen, setPermissionsOpen] = useState(false);
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -73,28 +58,19 @@ export function RoleDialog({ open, onOpenChange, onSuccess }: RoleDialogProps) {
     },
   });
 
-  useEffect(() => {
-    if (open) {
-      loadPermissions();
-    }
-  }, [open]);
-
-  async function loadPermissions() {
-    try {
-      const data = await fetchPermissions();
-      setPermissions(data);
-    } catch (error) {
-      toast.error("Failed to load permissions");
-    }
-  }
-
   async function onSubmit(values: z.infer<typeof formSchema>) {
     try {
       setLoading(true);
-      await createRole(values);
+      await createRole({
+        name: values.name,
+        description: values.description,
+        permissions: values.permissions,
+      });
+
+      toast.success("Role created successfully");
       form.reset();
       onSuccess?.();
-      toast.success("Role created successfully");
+      onOpenChange(false);
     } catch (error) {
       toast.error("Failed to create role");
     } finally {
@@ -106,13 +82,13 @@ export function RoleDialog({ open, onOpenChange, onSuccess }: RoleDialogProps) {
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Create New Role</DialogTitle>
+          <DialogTitle>Add New Role</DialogTitle>
           <DialogDescription>
-            Add a new role and assign permissions.
+            Create a new role and assign permissions.
           </DialogDescription>
         </DialogHeader>
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
             <FormField
               control={form.control}
               name="name"
@@ -120,7 +96,7 @@ export function RoleDialog({ open, onOpenChange, onSuccess }: RoleDialogProps) {
                 <FormItem>
                   <FormLabel>Role Name</FormLabel>
                   <FormControl>
-                    <Input placeholder="e.g., Editor" {...field} />
+                    <Input placeholder="Enter role name" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -133,8 +109,8 @@ export function RoleDialog({ open, onOpenChange, onSuccess }: RoleDialogProps) {
                 <FormItem>
                   <FormLabel>Description</FormLabel>
                   <FormControl>
-                    <Textarea
-                      placeholder="Brief description of the role"
+                    <Textarea 
+                      placeholder="Enter role description"
                       {...field}
                     />
                   </FormControl>
@@ -145,69 +121,50 @@ export function RoleDialog({ open, onOpenChange, onSuccess }: RoleDialogProps) {
             <FormField
               control={form.control}
               name="permissions"
-              render={({ field }) => (
+              render={() => (
                 <FormItem>
                   <FormLabel>Permissions</FormLabel>
-                  <Popover open={permissionsOpen} onOpenChange={setPermissionsOpen}>
-                    <PopoverTrigger asChild>
-                      <Button
-                        variant="outline"
-                        role="combobox"
-                        className={cn(
-                          "w-full justify-between",
-                          !field.value?.length && "text-muted-foreground"
-                        )}
-                      >
-                        {field.value?.length
-                          ? `${field.value.length} selected`
-                          : "Select permissions"}
-                        <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                      </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-[400px] p-0">
-                      <Command>
-                        <CommandInput placeholder="Search permissions..." />
-                        <CommandEmpty>No permissions found.</CommandEmpty>
-                        <CommandGroup className="max-h-[200px] overflow-auto">
-                          {permissions.map((permission) => (
-                            <CommandItem
+                  <div className="grid grid-cols-2 gap-4">
+                    {PERMISSIONS.map((permission) => (
+                      <FormField
+                        key={permission.id}
+                        control={form.control}
+                        name="permissions"
+                        render={({ field }) => {
+                          return (
+                            <FormItem
                               key={permission.id}
-                              value={permission.name}
-                              onSelect={() => {
-                                const current = new Set(field.value);
-                                if (current.has(permission.id)) {
-                                  current.delete(permission.id);
-                                } else {
-                                  current.add(permission.id);
-                                }
-                                field.onChange(Array.from(current));
-                              }}
+                              className="flex flex-row items-start space-x-3 space-y-0"
                             >
-                              <Check
-                                className={cn(
-                                  "mr-2 h-4 w-4",
-                                  field.value?.includes(permission.id)
-                                    ? "opacity-100"
-                                    : "opacity-0"
-                                )}
-                              />
-                              {permission.name}
-                            </CommandItem>
-                          ))}
-                        </CommandGroup>
-                      </Command>
-                    </PopoverContent>
-                  </Popover>
+                              <FormControl>
+                                <Checkbox
+                                  checked={field.value?.includes(permission.id)}
+                                  onCheckedChange={(checked) => {
+                                    return checked
+                                      ? field.onChange([...field.value, permission.id])
+                                      : field.onChange(
+                                          field.value?.filter(
+                                            (value) => value !== permission.id
+                                          )
+                                        )
+                                  }}
+                                />
+                              </FormControl>
+                              <FormLabel className="font-normal">
+                                {permission.label}
+                              </FormLabel>
+                            </FormItem>
+                          )
+                        }}
+                      />
+                    ))}
+                  </div>
                   <FormMessage />
                 </FormItem>
               )}
             />
             <DialogFooter>
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => onOpenChange(false)}
-              >
+              <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
                 Cancel
               </Button>
               <Button type="submit" disabled={loading}>

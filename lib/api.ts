@@ -3,12 +3,10 @@ const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000/a
 
 export async function fetchUsers() {
   const response = await fetch(`${API_BASE_URL}/users`, {
-   
-   
+    credentials: 'include',
     headers: {
       'Content-Type': 'application/json',
     },
-    
   });
   if (!response.ok) throw new Error('Failed to fetch users');
   return response.json();
@@ -26,10 +24,7 @@ export async function createUser(data: {
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(data),
   });
-  if (!response.ok){
-    console.log(response);
-    throw new Error('Failed to create user');
-  }
+  if (!response.ok) throw new Error('Failed to create user');
   return response.json();
 }
 
@@ -46,10 +41,7 @@ export async function updateUser(id: string, data: {
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(data),
   });
-  if (!response.ok){
-    console.log(response);
-    throw new Error('Failed to create user');
-  }
+  if (!response.ok) throw new Error('Failed to update user');
   return response.json();
 }
 
@@ -69,6 +61,15 @@ export async function fetchRoles() {
     headers: { 'Content-Type': 'application/json' },
   });
   if (!response.ok) throw new Error('Failed to fetch roles');
+  return response.json();
+}
+
+export async function fetchRole(id: string) {
+  const response = await fetch(`${API_BASE_URL}/roles/${id}`, {
+    credentials: 'include',
+    headers: { 'Content-Type': 'application/json' },
+  });
+  if (!response.ok) throw new Error('Failed to fetch role');
   return response.json();
 }
 

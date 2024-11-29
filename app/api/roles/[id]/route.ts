@@ -2,6 +2,47 @@ import { NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { getUser } from '@/lib/auth';
 
+export async function GET(
+  req: Request,
+  { params }: { params: { id: string } }
+) {
+  try {
+    const authUser = await getUser(req as any);
+    if (!authUser) {
+      return NextResponse.json(
+        { error: 'Unauthorized' },
+        { status: 401 }
+      );
+    }
+
+    const role = await db.role.findUnique({
+      where: { id: params.id },
+      include: {
+        permissions: {
+          include: {
+            permission: true
+          }
+        }
+      }
+    });
+
+    if (!role) {
+      return NextResponse.json(
+        { error: 'Role not found' },
+        { status: 404 }
+      );
+    }
+
+    return NextResponse.json(role);
+  } catch (error) {
+    console.error('Error fetching role:', error);
+    return NextResponse.json(
+      { error: 'Internal server error' },
+      { status: 500 }
+    );
+  }
+}
+
 export async function PATCH(
   req: Request,
   { params }: { params: { id: string } }
@@ -16,18 +57,18 @@ export async function PATCH(
     }
 
     const { name, description, permissions } = await req.json();
-    const { id } = params;
 
-    const role = await db.role.update({
-      where: { id },
+    // First update the role basic info
+    const updatedRole = await db.role.update({
+      where: { id: params.id },
       data: {
         name,
         description,
         permissions: {
-          deleteMany: {},
-          create: permissions.map((permissionId: string) => ({
+          deleteMany: {}, // Remove all existing permissions
+          create: permissions.map((permissionName: string) => ({
             permission: {
-              connect: { id: permissionId }
+              connect: { name: permissionName }
             }
           }))
         }
@@ -45,12 +86,13 @@ export async function PATCH(
       data: {
         userId: authUser.id as string,
         action: 'updated role',
-        target: role.name
+        target: name
       }
     });
 
-    return NextResponse.json(role);
+    return NextResponse.json(updatedRole);
   } catch (error) {
+    console.error('Error updating role:', error);
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }
@@ -71,22 +113,35 @@ export async function DELETE(
       );
     }
 
-    const { id } = params;
+    // Get the most recently created user with this role
+    const latestUser = await db.user.findFirst({
+      where: { roleId: params.id },
+      orderBy: { createdAt: 'desc' }
+    });
 
-    const role = await db.role.delete({
-      where: { id }
+    if (latestUser) {
+      // Delete only the most recent user
+      await db.user.delete({
+        where: { id: latestUser.id }
+      });
+    }
+
+    // Now delete the role
+    const deletedRole = await db.role.delete({
+      where: { id: params.id }
     });
 
     await db.activity.create({
       data: {
         userId: authUser.id as string,
         action: 'deleted role',
-        target: role.name
+        target: deletedRole.name
       }
     });
 
-    return NextResponse.json(role);
+    return NextResponse.json({ success: true });
   } catch (error) {
+    console.error('Error deleting role:', error);
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }
